@@ -139,7 +139,7 @@ def generate_script(paper):
 - 難読漢字や専門用語には、自然な会話の中で読み方や簡単な補足を入れること。
 """
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         contents=[uploaded_file, prompt],
     )
     return response.text.strip()
