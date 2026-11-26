@@ -23,55 +23,23 @@ EPISODES_DIR = DOCS_DIR / "episodes"
 HISTORY_FILE = Path("history.json")
 MAX_KEEP_DAYS = 7
 
-# 日本史固有の学術キーワード（約250語・他分野と被らない用語のみ厳選）
-KEYWORDS = [
-    # 原始・古代
-    "縄文時代", "縄文土器", "弥生時代", "弥生土器", "邪馬台国", "前方後円墳", "埴輪", "ヤマト王権",
-    "氏姓制度", "部民制", "屯倉", "飛鳥時代", "飛鳥京", "大化改新", "壬申の乱", "藤原京",
-    "律令国家", "大宝律令", "養老律令", "奈良時代", "平城京", "長岡京", "平安時代", "平安京",
-    "国司", "郡司", "班田収授", "口分田", "墾田永年私財法", "租庸調", "出挙", "太政官",
-    "摂関政治", "院政", "受領", "遣隋使", "遣唐使", "渤海使", "大宰府", "防人",
-    "蝦夷", "多賀城", "国分寺", "東大寺", "正倉院", "神仏習合", "古事記", "日本書紀",
-    "風土記", "万葉集", "延喜式", "六国史", "白鳳文化", "天平文化", "国風文化",
-    "承平天慶の乱", "前九年の役", "後三年の役", "奥州藤原氏", "平泉",
-
-    # 中世
-    "荘園公領制", "寄進地系荘園", "国衙領", "平氏政権", "源平合戦", "治承寿永の乱", "鎌倉幕府", "鎌倉時代",
-    "御家人", "守護", "地頭", "執権政治", "御成敗式目", "承久の乱", "元寇", "蒙古襲来",
-    "悪党", "永仁の徳政令", "建武の新政", "南北朝時代", "室町幕府", "室町時代", "守護大名", "守護請",
-    "半済令", "国人一揆", "惣村", "土一揆", "正長の土一揆", "山城国一揆", "一向一揆", "法華一揆",
-    "応仁の乱", "戦国大名", "戦国時代", "分国法", "織豊政権", "楽市楽座", "刀狩",
-    "延暦寺", "興福寺", "高野山", "本願寺", "鎌倉仏教", "五山文学", "日宋貿易", "日明貿易",
-    "勘合貿易", "倭寇", "琉球王国", "花押", "中世村落", "北条氏", "足利氏", "六波羅探題",
-    "鎌倉公方", "関東管領", "下剋上", "検断", "年貢", "撰銭令", "馬借", "問丸", "吾妻鏡",
-
-    # 近世
-    "幕藩制", "幕藩体制", "太閤検地", "兵農分離", "石高制", "江戸幕府", "江戸時代", "武家諸法度",
-    "禁中並公家諸法度", "参勤交代", "改易", "旗本", "藩政改革", "享保の改革", "寛政の改革", "天保の改革",
-    "田沼時代", "近世村落", "村請制", "五人組", "名主", "庄屋", "本百姓", "水呑百姓",
-    "村方騒動", "百姓一揆", "打ちこわし", "世直し一揆", "ええじゃないか", "在郷町", "三都", "町人文化",
-    "株仲間", "両替商", "蔵屋敷", "札差", "菱垣廻船", "樽廻船", "北前船", "五街道",
-    "助郷", "関所", "長崎貿易", "出島", "唐人屋敷", "朝鮮通信使", "琉球使節", "蝦夷地",
-    "アイヌ", "松前藩", "寺請制度", "宗門改帳", "キリシタン", "島原の乱", "国学", "蘭学",
-    "浮世絵", "尊王攘夷", "公武合体", "倒幕運動", "戊辰戦争", "大政奉還", "王政復古",
-    "生類憐みの令", "元禄文化", "化政文化", "寺子屋", "藩校", "往来物", "伊勢参り",
-
-    # 近現代
-    "ペリー来航", "日米和親条約", "日米修好通商条約", "安政の大獄", "桜田門外の変", "薩長同盟",
-    "明治維新", "明治時代", "五箇条の御誓文", "版籍奉還", "廃藩置県", "四民平等", "秩禄処分", "地租改正",
-    "徴兵令", "殖産興業", "富岡製糸場", "文明開化", "岩倉使節団", "征韓論", "西南戦争", "自由民権運動",
-    "大日本帝国憲法", "帝国議会", "教育勅語", "市制町村制", "府県制", "条約改正", "日清戦争", "日露戦争",
-    "韓国併合", "大正時代", "大正デモクラシー", "護憲運動", "米騒動", "普通選挙法", "治安維持法", "地方改良運動",
-    "全国水平社", "昭和恐慌", "満洲事変", "五一五事件", "二二六事件", "日中戦争", "国家総動員法", "大政翼賛会",
-    "学徒出陣", "ポツダム宣言", "日本国憲法", "GHQ", "財閥解体", "農地改革",
-    "サンフランシスコ平和条約", "日米安全保障条約", "高度経済成長", "昭和戦前期", "戦後日本"
+# J-STAGE収録の日本史・歴史学主要学術誌
+# require_jp=True は西洋史・東洋史も含む総合誌のため「日本」で絞り込む
+JOURNALS = [
+    {"code": "nihonshikenkyu", "name": "日本史研究", "require_jp": False},
+    {"code": "kotsushi", "name": "交通史研究", "require_jp": False},
+    {"code": "nihonkokogaku1994", "name": "日本考古学", "require_jp": False},
+    {"code": "histgeo", "name": "歴史地理学", "require_jp": True},
+    {"code": "shigaku", "name": "史学雑誌", "require_jp": True},
+    {"code": "sehs", "name": "社会経済史学", "require_jp": True},
+    {"code": "jalha", "name": "法制史研究", "require_jp": True},
 ]
 
-# 書評・学会報告・学校教育系を除外するNGワード
+# 書評・学会報告・目次・回顧と展望などを除外するNGワード
 EXCLUDE_WORDS = [
     "書評", "新刊紹介", "紹介", "彙報", "例会", "大会", "シンポジウム",
-    "追悼", "目録", "総目次", "編集後記", "学会動向", "文献目録",
-    "中学校", "高等学校", "高校", "小学校", "社会科", "授業", "指導", "教科書", "入試"
+    "追悼", "目録", "総目次", "目次", "表紙", "CONTENTS", "編集後記",
+    "学会動向", "文献目録", "回顧と展望", "学界消息", "受贈図書"
 ]
 
 HEADERS = {
@@ -90,7 +58,9 @@ def save_history(history):
 
 
 def is_valid_paper_title(title):
-    """書評・紹介・教育実践などを除外する"""
+    """書評・目次・学会報告などを除外する"""
+    if len(title) < 6:
+        return False
     for ng in EXCLUDE_WORDS:
         if ng in title:
             return False
@@ -98,104 +68,143 @@ def is_valid_paper_title(title):
 
 
 def fetch_random_paper(history):
-    """J-STAGE公式APIから本文PDF付きの日本史論文をランダム取得"""
-    random.shuffle(KEYWORDS)
-    ns = {"atom": "http://www.w3.org/2005/Atom"}
+    """日本史の主要学術誌をランダムに選び、そこから未読のPDF論文を1本取得"""
+    journals = JOURNALS.copy()
+    random.shuffle(journals)
+    ns = {
+        "atom": "http://www.w3.org/2005/Atom",
+        "prism": "http://prismstandard.org/namespaces/basic/2.0/",
+    }
 
-    for kw in KEYWORDS:
+    for journal in journals:
         api_url = "https://api.jstage.jst.go.jp/searchapi/do"
-        params = {
-            "service": "3",
-            "text": f"日本史 {kw}",
-            "count": "50",
-        }
-        try:
-            res = requests.get(api_url, params=params, headers=HEADERS, timeout=20)
-            if res.status_code != 200:
-                continue
-            root = ET.fromstring(res.content)
-        except Exception:
-            continue
 
-        entries = root.findall("atom:entry", ns)
-        random.shuffle(entries)
+        # 毎回同じ最新号ばかりにならないよう、開始位置をランダムにする（ヒットしなければ1から再検索）
+        start_positions = [random.randint(1, 200), 1]
 
-        for entry in entries:
-            paper_id_el = entry.find("atom:id", ns)
-            title_el = entry.find("atom:title", ns)
-            link_el = entry.find("atom:link", ns)
-            if paper_id_el is None or title_el is None or link_el is None:
-                continue
+        for start_pos in start_positions:
+            params = {
+                "service": "3",
+                "cdjournal": journal["code"],
+                "count": "50",
+                "start": str(start_pos),
+            }
+            if journal["require_jp"]:
+                params["text"] = "日本"
 
-            paper_id = paper_id_el.text.strip()
-            title = title_el.text.strip()
-
-            if paper_id in history or not is_valid_paper_title(title):
-                continue
-
-            article_url = link_el.attrib.get("href", "")
-            if "/_article" not in article_url:
-                continue
-
-            # J-STAGEの論文ページURLをPDF直リンクに変換
-            pdf_url = re.sub(r"/_article.*", "/_pdf/-char/ja", article_url)
-
-            # 著者名を取得
-            authors = [
-                a.find("atom:name", ns).text.strip()
-                for a in entry.findall("atom:author", ns)
-                if a.find("atom:name", ns) is not None and a.find("atom:name", ns).text
-            ]
-            author_str = ", ".join(authors) if authors else "著者不明"
-
-            # PDFをダウンロードして本物の論文PDFか確認（120KB以上）
             try:
-                pdf_res = requests.get(pdf_url, headers=HEADERS, timeout=30, allow_redirects=True)
-                if (
-                    pdf_res.status_code == 200
-                    and len(pdf_res.content) > 120_000
-                    and pdf_res.content[:4] == b"%PDF"
-                ):
-                    pdf_path = Path("temp_paper.pdf")
-                    pdf_path.write_bytes(pdf_res.content)
-                    return {
-                        "id": paper_id,
-                        "title": title,
-                        "author": author_str,
-                        "url": article_url,
-                        "keyword": kw,
-                        "pdf_path": pdf_path,
-                    }
+                res = requests.get(api_url, params=params, headers=HEADERS, timeout=20)
+                if res.status_code != 200:
+                    continue
+                root = ET.fromstring(res.content)
             except Exception:
                 continue
+
+            entries = root.findall("atom:entry", ns)
+            if not entries:
+                continue
+
+            random.shuffle(entries)
+
+            for entry in entries:
+                paper_id_el = entry.find("atom:id", ns)
+                title_el = entry.find("atom:title", ns)
+                link_el = entry.find("atom:link", ns)
+                if paper_id_el is None or title_el is None or link_el is None:
+                    continue
+
+                paper_id = paper_id_el.text.strip()
+                title = title_el.text.strip()
+
+                if paper_id in history or not is_valid_paper_title(title):
+                    continue
+
+                article_url = link_el.attrib.get("href", "")
+                if "/_article" not in article_url:
+                    continue
+
+                # J-STAGEの論文ページURLをPDF直リンクに変換
+                pdf_url = re.sub(r"/_article.*", "/_pdf/-char/ja", article_url)
+
+                # 著者名を取得
+                authors = [
+                    a.find("atom:name", ns).text.strip()
+                    for a in entry.findall("atom:author", ns)
+                    if a.find("atom:name", ns) is not None and a.find("atom:name", ns).text
+                ]
+                author_str = ", ".join(authors) if authors else "著者不明"
+
+                # 出版年を取得
+                pub_year = "出版年不明"
+                pub_year_el = entry.find("prism:publicationDate", ns)
+                if pub_year_el is not None and pub_year_el.text:
+                    pub_year = pub_year_el.text.strip()[:4] + "年"
+                else:
+                    # 別のタグ（atom:updated等）やPDF内から補完できるようフォールバック
+                    for elem in entry:
+                        if elem.tag.endswith("pubyear") and elem.text:
+                            pub_year = elem.text.strip() + "年"
+                            break
+
+                # PDFをダウンロードして本物の論文PDFか確認（150KB以上）
+                try:
+                    pdf_res = requests.get(pdf_url, headers=HEADERS, timeout=30, allow_redirects=True)
+                    if (
+                        pdf_res.status_code == 200
+                        and len(pdf_res.content) > 150_000
+                        and pdf_res.content[:4] == b"%PDF"
+                    ):
+                        pdf_path = Path("temp_paper.pdf")
+                        pdf_path.write_bytes(pdf_res.content)
+                        return {
+                            "id": paper_id,
+                            "title": title,
+                            "author": author_str,
+                            "journal": journal["name"],
+                            "pub_year": pub_year,
+                            "url": article_url,
+                            "pdf_path": pdf_path,
+                        }
+                except Exception:
+                    continue
 
     raise RuntimeError("取得可能なPDF付き論文が見つかりませんでした。")
 
 
 def generate_script(paper):
-    """Gemini API（無料枠）にPDFを直接渡して約9,000文字の解説台本を生成"""
+    """Gemini API（無料枠）にPDFを直接渡して、論証重視の約30分解説台本を生成"""
     client = genai.Client(api_key=GEMINI_API_KEY)
     uploaded_file = client.files.upload(file=str(paper["pdf_path"]))
 
     prompt = f"""
-あなたは歴史系ポッドキャストの優秀なパーソナリティです。
-添付の日本史学術論文を、朝ごはんを作りながら耳だけで聞いて楽しめるように、約30分間（8,500〜9,500文字）の解説ラジオ台本にしてください。
+あなたは日本史学を専門とする学術解説者です。
+添付の日本史学術論文を、耳だけで聞いて内容を深く正確に理解できるように、約30分間（8,500〜9,500文字）の解説音声台本を作成してください。
 
-【論文情報】
-タイトル：{paper['title']}
+【書誌情報】
+論文名：{paper['title']}
 著者：{paper['author']}
+掲載雑誌：{paper['journal']}
+出版年：{paper['pub_year']}
 
-【構成の目安】
-1. オープニング（約500文字）：朝の挨拶、論文のテーマと「何が面白いのか」の導入
-2. 時代背景と先行研究（約1,500文字）：これまでの通説と、著者が抱いた疑問
-3. 本論の深掘り（約5,000文字）：論文の主張と史料の読み解きを3〜4章に分けて丁寧に解説
-4. 結論と歴史的意義（約1,500文字）：この研究で歴史の見方がどう変わるか
-5. エンディング（約500文字）：要点の振り返りと締めの挨拶
+【構成と内容の厳守事項】
+1. 導入（冗長な挨拶・雑談は一切不要）：
+   - 「おはようございます」「今日も聞いていただきありがとうございます」などの挨拶や雑談は一切入れず、いきなり本題に入ること。
+   - 最初に必ず「論文名」「著者名」「掲載雑誌名」「出版年」を明確に述べること。
+   - 添付PDFの冒頭・末尾・脚注などに著者の所属機関や肩書（大学名・職位など）が記載されていれば、必ずそれも併せて紹介すること（記載がない場合は無理に推測しないこと）。
+2. 研究の背景と問題設定（約1,500文字）：
+   - 先行研究で何が通説とされており、そこにどのような限界や未解明の点があるのかを具体的に整理する。
+   - 本論文が立てた問い（リサーチ・クエスチョン）を明確に示す。
+3. 具体的な論証プロセス（約6,000文字・最重要パート）：
+   - 結論だけを抽象的にまとめるのではなく、「著者がどのような史料（古文書・日記・帳簿・考古資料など）を取り上げ、その記述やデータをどう読み解き、どのような論理のステップを踏んで主張を裏付けているのか」を、章立てに沿って具体的・緻密に解説すること。
+   - 史料の引用や具体的な事例・年代・地名・人物名を省かず、耳で聞いて論理の筋道が追えるように丁寧に説明すること。
+4. 結論と学術的意義（約1,500文字）：
+   - 論証から導かれた結論と、それが従来の日本史像や先行研究をどう書き換えるのかをまとめる。
+   - 締めの挨拶も不要。解説のまとめで簡潔に終えること。
 
-【厳守事項】
-- 音声読み上げソフト（TTS）にそのまま渡すため、Markdown記号（#、*、-、` など）や見出し記号は一切使わないこと。
+【音声読み上げ（TTS）向けの厳守事項】
+- Markdown記号（#、*、-、`、箇条書き記号など）や見出し番号の記号は一切使わないこと。
 - 話し言葉のプレーンテキストのみで出力すること。
-- 難読漢字や専門用語には、自然な会話の中で読み方や簡単な補足を入れること。
+- 難読漢字・古文書用語・歴史用語には、自然な文脈の中で読み方や簡潔な意味の補足を添えること。
 """
 
     models = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"]
@@ -252,7 +261,11 @@ def build_rss_feed():
         fe = fg.add_entry()
         fe.id(meta["id"])
         fe.title(f"{meta['date']} {meta['title']}")
-        fe.description(f"著者：{meta['author']}\nテーマ：{meta['keyword']}\n元論文：{meta['url']}")
+        fe.description(
+            f"著者：{meta['author']}\n"
+            f"雑誌：{meta.get('journal', '不明')}（{meta.get('pub_year', '不明')}）\n"
+            f"元論文：{meta['url']}"
+        )
         fe.pubDate(meta["pub_date"])
         fe.enclosure(
             f"{BASE_URL}/episodes/{mp3_path.name}",
@@ -268,7 +281,7 @@ def main():
     history = load_history()
 
     paper = fetch_random_paper(history)
-    print(f"Selected: {paper['title']}")
+    print(f"Selected: [{paper['journal']} ({paper['pub_year']})] {paper['title']}")
 
     script = generate_script(paper)
     print(f"Script generated: {len(script)} chars")
@@ -287,7 +300,8 @@ def main():
         "pub_date": now.isoformat(),
         "title": paper["title"],
         "author": paper["author"],
-        "keyword": paper["keyword"],
+        "journal": paper["journal"],
+        "pub_year": paper["pub_year"],
         "url": paper["url"],
     }
     (EPISODES_DIR / f"{date_str}.json").write_text(
