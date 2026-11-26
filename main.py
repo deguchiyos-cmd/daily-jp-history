@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import json
 import random
 import asyncio
@@ -138,12 +139,22 @@ def generate_script(paper):
 - 話し言葉のプレーンテキストのみで出力すること。
 - 難読漢字や専門用語には、自然な会話の中で読み方や簡単な補足を入れること。
 """
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=[uploaded_file, prompt],
-    )
-    return response.text.strip()
-
+models = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"]
+    last_error = None
+    for model_name in models:
+        for attempt in range(2):
+            try:
+                print(f"Trying model: {model_name} (attempt {attempt + 1})")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[uploaded_file, prompt],
+                )
+                return response.text.strip()
+            except Exception as e:
+                last_error = e
+                print(f"Failed with {model_name}: {e}")
+                time.sleep(10)
+    raise last_error
 async def text_to_speech(text, output_mp3):
     """edge-ttsで日本語ニューラル音声（完全無料）を生成"""
     # 女性声: ja-JP-NanamiNeural / 男性声: ja-JP-KeitaNeural
