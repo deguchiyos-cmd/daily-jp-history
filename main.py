@@ -35,6 +35,19 @@ def load_history():
 def save_history(history):
     HISTORY_FILE.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
 
+def extract_urls(field):
+    """辞書・リスト・文字列のどの形式でも安全にURL一覧を取り出す"""
+    urls = []
+    if isinstance(field, str):
+        urls.append(field)
+    elif isinstance(field, dict):
+        if "@id" in field:
+            urls.append(field["@id"])
+    elif isinstance(field, list):
+        for entry in field:
+            urls.extend(extract_urls(entry))
+    return urls
+
 def fetch_random_paper(history):
     """CiNii Research APIから本文PDF付きの日本史論文をランダム取得"""
     random.shuffle(KEYWORDS)
@@ -58,27 +71,37 @@ def fetch_random_paper(history):
             if not paper_id or paper_id in history:
                 continue
 
-            # PDFリンクを探す（J-STAGEや大学リポジトリ等の直接PDFを優先）
+            # link と rdfs:seeAlso の両方からPDFリンクを探す
+            candidate_urls = (
+                extract_urls(item.get("link"))
+                + extract_urls(item.get("rdfs:seeAlso"))
+            )
             pdf_url = None
-            for link in item.get("link", []):
-                href = link.get("@id", "")
-                if href.lower().endswith(".pdf"):
+            for href in candidate_urls:
+                if ".pdf" in href.lower() or "/_pdf" in href.lower():
                     pdf_url = href
                     break
 
             if not pdf_url:
                 continue
 
-            # PDFをダウンロードしてサイズ確認（極端に小さいエラーページを除外）
+            # PDFをダウンロードして中身が本物のPDFか確認
             try:
                 pdf_res = requests.get(pdf_url, timeout=30)
-                if pdf_res.status_code == 200 and len(pdf_res.content) > 50_000:
+                if (
+                    pdf_res.status_code == 200
+                    and len(pdf_res.content) > 50_000
+                    and pdf_res.content[:4] == b"%PDF"
+                ):
                     pdf_path = Path("temp_paper.pdf")
                     pdf_path.write_bytes(pdf_res.content)
+                    creators = item.get("dc:creator", ["著者不明"])
+                    if isinstance(creators, str):
+                        creators = [creators]
                     return {
                         "id": paper_id,
                         "title": item.get("title", "無題の日本史論文"),
-                        "author": ", ".join(item.get("dc:creator", ["著者不明"])),
+                        "author": ", ".join(creators),
                         "url": paper_id,
                         "keyword": kw,
                         "pdf_path": pdf_path,
