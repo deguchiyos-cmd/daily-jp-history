@@ -2,16 +2,16 @@ name: Daily Japanese History Podcast
 
 on:
   schedule:
-    # UTC 20:15 = 日本時間 翌朝 05:15（遅延を見込んで早めに設定）
-    - cron: "15 20 * * *"
-  workflow_dispatch: # 手動テスト実行用
+    - cron: '0 19 * * *' # 毎日 日本時間 04:00 (UTC 19:00)
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-podcast:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -36,5 +36,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/ history.json
-          git commit -m "Add episode $(date +'%Y-%m-%d')" || exit 0
+          git diff --staged --quiet || git commit -m "Add daily Japanese history podcast episode"
           git push
