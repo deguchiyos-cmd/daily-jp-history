@@ -1,8 +1,10 @@
 import os
+import re
 import json
 import random
 import asyncio
 import datetime
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import requests
 import edge_tts
@@ -23,9 +25,13 @@ MAX_KEEP_DAYS = 7
 # ランダム選書用の日本史キーワード
 KEYWORDS = [
     "縄文時代", "弥生時代", "古墳時代", "律令制", "平安時代", "荘園",
-    "鎌倉幕府", "室町時代", "戦国大名", "織豊政権", "幕藩体制", "江戸時代 文化",
+    "鎌倉幕府", "室町時代", "戦国大名", "織豊政権", "幕藩体制", "江戸時代",
     "蘭学", "幕末", "明治維新", "自由民権運動", "大正デモクラシー", "日本近現代史"
 ]
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; DailyHistoryPodcast/1.0)"
+}
 
 def load_history():
     if HISTORY_FILE.exists():
@@ -35,59 +41,58 @@ def load_history():
 def save_history(history):
     HISTORY_FILE.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
 
-def extract_urls(field):
-    """辞書・リスト・文字列のどの形式でも安全にURL一覧を取り出す"""
-    urls = []
-    if isinstance(field, str):
-        urls.append(field)
-    elif isinstance(field, dict):
-        if "@id" in field:
-            urls.append(field["@id"])
-    elif isinstance(field, list):
-        for entry in field:
-            urls.extend(extract_urls(entry))
-    return urls
-
 def fetch_random_paper(history):
-    """CiNii Research APIから本文PDF付きの日本史論文をランダム取得"""
+    """J-STAGE公式APIから本文PDF付きの日本史論文をランダム取得"""
     random.shuffle(KEYWORDS)
+    ns = {"atom": "http://www.w3.org/2005/Atom"}
+
     for kw in KEYWORDS:
-        url = "https://cir.nii.ac.jp/opensearch/articles"
+        api_url = "https://api.jstage.jst.go.jp/searchapi/do"
         params = {
-            "q": f"日本史 {kw}",
-            "hasLinkToFullText": "true",
-            "format": "json",
-            "count": 30,
+            "service": "3",
+            "text": f"日本史 {kw}",
+            "count": "30",
         }
-        res = requests.get(url, params=params, timeout=20)
-        if res.status_code != 200:
+        try:
+            res = requests.get(api_url, params=params, headers=HEADERS, timeout=20)
+            if res.status_code != 200:
+                continue
+            root = ET.fromstring(res.content)
+        except Exception:
             continue
 
-        items = res.json().get("items", [])
-        random.shuffle(items)
+        entries = root.findall("atom:entry", ns)
+        random.shuffle(entries)
 
-        for item in items:
-            paper_id = item.get("@id")
-            if not paper_id or paper_id in history:
+        for entry in entries:
+            paper_id_el = entry.find("atom:id", ns)
+            title_el = entry.find("atom:title", ns)
+            link_el = entry.find("atom:link", ns)
+            if paper_id_el is None or title_el is None or link_el is None:
                 continue
 
-            # link と rdfs:seeAlso の両方からPDFリンクを探す
-            candidate_urls = (
-                extract_urls(item.get("link"))
-                + extract_urls(item.get("rdfs:seeAlso"))
-            )
-            pdf_url = None
-            for href in candidate_urls:
-                if ".pdf" in href.lower() or "/_pdf" in href.lower():
-                    pdf_url = href
-                    break
-
-            if not pdf_url:
+            paper_id = paper_id_el.text.strip()
+            if paper_id in history:
                 continue
 
-            # PDFをダウンロードして中身が本物のPDFか確認
+            article_url = link_el.attrib.get("href", "")
+            if "/_article" not in article_url:
+                continue
+
+            # J-STAGEの論文ページURLをPDF直リンクに変換
+            pdf_url = re.sub(r"/_article.*", "/_pdf/-char/ja", article_url)
+
+            # 著者名を取得
+            authors = [
+                a.find("atom:name", ns).text.strip()
+                for a in entry.findall("atom:author", ns)
+                if a.find("atom:name", ns) is not None and a.find("atom:name", ns).text
+            ]
+            author_str = ", ".join(authors) if authors else "著者不明"
+
+            # PDFをダウンロードして本物のPDFか確認
             try:
-                pdf_res = requests.get(pdf_url, timeout=30)
+                pdf_res = requests.get(pdf_url, headers=HEADERS, timeout=30, allow_redirects=True)
                 if (
                     pdf_res.status_code == 200
                     and len(pdf_res.content) > 50_000
@@ -95,14 +100,11 @@ def fetch_random_paper(history):
                 ):
                     pdf_path = Path("temp_paper.pdf")
                     pdf_path.write_bytes(pdf_res.content)
-                    creators = item.get("dc:creator", ["著者不明"])
-                    if isinstance(creators, str):
-                        creators = [creators]
                     return {
                         "id": paper_id,
-                        "title": item.get("title", "無題の日本史論文"),
-                        "author": ", ".join(creators),
-                        "url": paper_id,
+                        "title": title_el.text.strip(),
+                        "author": author_str,
+                        "url": article_url,
                         "keyword": kw,
                         "pdf_path": pdf_path,
                     }
