@@ -23,23 +23,31 @@ EPISODES_DIR = DOCS_DIR / "episodes"
 HISTORY_FILE = Path("history.json")
 MAX_KEEP_DAYS = 7
 
-# J-STAGE収録の日本史・歴史学主要学術誌
-# require_jp=True は西洋史・東洋史も含む総合誌のため「日本」で絞り込む
+# J-STAGE収録の日本史・歴史学主要学術誌（15誌）
+# require_jp=True は西洋史・東洋史等も含むため「日本」で絞り込む
 JOURNALS = [
     {"code": "nihonshikenkyu", "name": "日本史研究", "require_jp": False},
     {"code": "kotsushi", "name": "交通史研究", "require_jp": False},
     {"code": "nihonkokogaku1994", "name": "日本考古学", "require_jp": False},
-    {"code": "histgeo", "name": "歴史地理学", "require_jp": True},
+    {"code": "chiikishikenkyu", "name": "地域史研究", "require_jp": False},
+    {"code": "nihonminzokugaku", "name": "日本民俗学", "require_jp": False},
     {"code": "shigaku", "name": "史学雑誌", "require_jp": True},
+    {"code": "jinreki", "name": "人民の歴史学", "require_jp": True},
+    {"code": "histgeo", "name": "歴史地理学", "require_jp": True},
     {"code": "sehs", "name": "社会経済史学", "require_jp": True},
+    {"code": "rekishitokeizai", "name": "歴史と経済", "require_jp": True},
+    {"code": "bhsj", "name": "経営史学", "require_jp": True},
     {"code": "jalha", "name": "法制史研究", "require_jp": True},
+    {"code": "jsahj", "name": "建築史学", "require_jp": True},
+    {"code": "jshm", "name": "日本医史学雑誌", "require_jp": True},
+    {"code": "jhsj", "name": "科学史研究", "require_jp": True},
 ]
 
 # 書評・学会報告・目次・回顧と展望などを除外するNGワード
 EXCLUDE_WORDS = [
     "書評", "新刊紹介", "紹介", "彙報", "例会", "大会", "シンポジウム",
     "追悼", "目録", "総目次", "目次", "表紙", "CONTENTS", "編集後記",
-    "学会動向", "文献目録", "回顧と展望", "学界消息", "受贈図書"
+    "学会動向", "文献目録", "回顧と展望", "学界消息", "受贈図書", "奥付"
 ]
 
 HEADERS = {
@@ -140,7 +148,6 @@ def fetch_random_paper(history):
                 if pub_year_el is not None and pub_year_el.text:
                     pub_year = pub_year_el.text.strip()[:4] + "年"
                 else:
-                    # 別のタグ（atom:updated等）やPDF内から補完できるようフォールバック
                     for elem in entry:
                         if elem.tag.endswith("pubyear") and elem.text:
                             pub_year = elem.text.strip() + "年"
@@ -233,7 +240,7 @@ async def text_to_speech(text, output_mp3):
 
 
 def cleanup_old_episodes():
-    """直近MAX_KEEP_DAYS日分のみ残して古いMP3とメタデータを削除"""
+    """直近MAX_KEEP_DAYS件のみ残して古いMP3とメタデータを削除"""
     files = sorted(EPISODES_DIR.glob("*.json"), reverse=True)
     for old_meta in files[MAX_KEEP_DAYS:]:
         mp3_file = old_meta.with_suffix(".mp3")
@@ -289,8 +296,9 @@ def main():
     jst = datetime.timezone(datetime.timedelta(hours=9))
     now = datetime.datetime.now(jst)
     date_str = now.strftime("%Y-%m-%d")
+    file_stem = now.strftime("%Y-%m-%d-%H%M%S")
 
-    mp3_path = EPISODES_DIR / f"{date_str}.mp3"
+    mp3_path = EPISODES_DIR / f"{file_stem}.mp3"
     asyncio.run(text_to_speech(script, mp3_path))
 
     # エピソード情報を保存
@@ -304,7 +312,7 @@ def main():
         "pub_year": paper["pub_year"],
         "url": paper["url"],
     }
-    (EPISODES_DIR / f"{date_str}.json").write_text(
+    (EPISODES_DIR / f"{file_stem}.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
