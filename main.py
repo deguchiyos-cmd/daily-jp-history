@@ -10,6 +10,7 @@ from pathlib import Path
 import requests
 import edge_tts
 from google import genai
+from google.genai import types
 from feedgen.feed import FeedGenerator
 
 # --- 設定 ---
@@ -178,9 +179,53 @@ def fetch_random_paper(history):
     raise RuntimeError("取得可能なPDF付き論文が見つかりませんでした。")
 
 
+def fetch_author_profile(client, paper):
+    """Google検索機能を使って著者の肩書・経歴・主要研究を調査する"""
+    if not paper["author"] or paper["author"] == "著者不明":
+        return "Web上の確認情報なし"
+
+    search_prompt = f"""
+以下の日本史・歴史学論文の著者について、Web検索（researchmap、大学公式サイト、KAKEN、CiNiiなど）でプロフィールを調査し、200〜300文字程度のプレーンテキストで簡潔にまとめてください。
+
+【対象論文】
+著者：{paper['author']}
+論文名：{paper['title']}
+掲載雑誌：{paper['journal']}（{paper['pub_year']}）
+
+【調べる項目】
+- 所属機関・肩書（現在の職位、名誉教授や故人の場合はその旨）
+- 略歴（出身大学院や主な歴任先など、確認できる範囲で）
+- 主要な研究テーマ・代表的な著書
+
+【厳守事項】
+- 同姓同名の別人（他分野の研究者など）と絶対に混同しないこと。この論文の著者本人と確実に一致する情報のみを記載すること。
+- 確実な情報が見つからない場合は推測で書かず、「Web上の確認情報なし」とだけ出力すること。
+"""
+
+    models = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"]
+    for model_name in models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=search_prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())]
+                ),
+            )
+            if response.text:
+                print(f"Author profile fetched via {model_name}")
+                return response.text.strip()
+        except Exception as e:
+            print(f"Author search failed with {model_name}: {e}")
+            time.sleep(5)
+
+    return "Web上の確認情報なし"
+
+
 def generate_script(paper):
-    """Gemini API（無料枠）にPDFを直接渡して、30分以内・わかりやすい論証解説台本を生成"""
+    """Gemini API（無料枠）にPDFと著者プロフィールを渡して、30分以内・わかりやすい論証解説台本を生成"""
     client = genai.Client(api_key=GEMINI_API_KEY)
+    author_profile = fetch_author_profile(client, paper)
     uploaded_file = client.files.upload(file=str(paper["pdf_path"]))
 
     prompt = f"""
@@ -193,14 +238,17 @@ def generate_script(paper):
 掲載雑誌：{paper['journal']}
 出版年：{paper['pub_year']}
 
+【Web検索で取得した著者プロフィール】
+{author_profile}
+
 【構成と文字数の厳守事項（合計5,500〜6,500文字・上限6,800文字厳守）】
-1. 書誌情報とテーマの提示（約300文字）：
+1. 書誌情報と著者紹介（約450文字）：
    - 「おはようございます」「今日も聞いていただきありがとうございます」などの挨拶や雑談は一切入れず、いきなり本題に入ること。
    - 最初に必ず「論文名」「著者名」「掲載雑誌名」「出版年」を明確に述べること。
-   - 添付PDFに著者の所属機関や肩書（大学名・職位など）が記載されていれば、必ずそれも併せて紹介すること（記載がない場合は推測しないこと）。
-2. 研究の背景と問題設定（約1,000文字）：
+   - 続けて、上記の「Web検索で取得した著者プロフィール」および添付PDF内の記載をもとに、著者の肩書・経歴・主要な研究テーマや代表作をわかりやすく紹介すること（Web検索結果が「確認情報なし」の場合はPDF内の記載のみにとどめ、推測はしないこと）。
+2. 研究の背景と問題設定（約950文字）：
    - これまで何が通説とされていたのか、著者がどこに疑問を持ったのかを、専門外の人にもわかる言葉で整理する。
-3. 具体的な論証プロセス（約3,500文字・最重要パート）：
+3. 具体的な論証プロセス（約3,400文字・最重要パート）：
    - 「どのような史料やデータを使い、どう読み解いて結論を導いたのか」という論証の筋道を、重要なポイントに絞ってわかりやすく解説する。
    - 細かい枝葉の事例や人名の羅列は整理し、「なぜそれが証拠になるのか」という論理のつながりを明確にすること。
 4. 結論と歴史的意義（約1,000文字）：
